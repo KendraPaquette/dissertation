@@ -21,12 +21,12 @@ html-table-processing: none
 
 ```{r}
 #| label: ema-fig-1
-#| fig-cap: "ROC curves and posterior probabilities for auROCs by prediction window. The left panel depicts the aggregate receiver operating characteristic (ROC) curve for each model, derived by concatenating predicted lapse probabilities across all test sets. The dotted line represents the expected ROC curve for a random classifier. The histograms on the right depict the posterior probability distribution for the areas under the receiver operating characteristic curves (auROCs) for each model. The vertical lines represent the median posterior probability and the horizontal line represents the boundaries 95\% CI."
+#| fig-cap: "ROC curves and posterior probabilities for auROCs by prediction window. The left panel depicts the aggregate receiver operating characteristic (ROC) curve for each model, derived by concatenating predicted lapse probabilities across all test sets. The dotted line represents the expected ROC curve for a random classifier. The histograms on the right depict the posterior probability distribution for the areas under the receiver operating characteristic curves (auROCs) for each model. The vertical lines represent the median posterior probability and the horizontal line represents the boundaries 95% CI."
 
 #| fig-width: 8
 #| fig-height: 6
 
-knitr::include_graphics(path = "figures/ema_fig_1.jpeg")
+knitr::include_graphics(path = here::here("figures/ema_fig_1.jpeg"))
 ```
 
 
@@ -39,7 +39,7 @@ knitr::include_graphics(path = "figures/ema_fig_1.jpeg")
 #| fig-width: 8
 #| fig-height: 6
 
-knitr::include_graphics(path = "figures/ema_fig_2.jpeg")
+knitr::include_graphics(path = here::here("figures/ema_fig_2.jpeg"))
 ```
 
 
@@ -52,5 +52,5 @@ knitr::include_graphics(path = "figures/ema_fig_2.jpeg")
 #| fig-width: 8
 #| fig-height: 6
 
-knitr::include_graphics(path = "figures/ema_fig_3.jpeg")
+knitr::include_graphics(path = here::here("figures/ema_fig_3.jpeg"))
 ```

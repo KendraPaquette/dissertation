@@ -23,6 +23,8 @@ format:
 
 ```{r}
 suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(tidymodels))
+suppressPackageStartupMessages(library(tidyposterior))
 suppressPackageStartupMessages(source("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true"))
 
 
@@ -39,7 +41,7 @@ options(knitr.kable.NA = '')
 
 ```{r}
 # read in ema tibbles for in-line code
-disposition <- read_csv(file.path(path_processed, "disposition.csv"), 
+disposition <- read_csv(file.path(path_processed_ema, "disposition.csv"), 
                         col_types = "ccDDcccccccccc")
 screen <- read_csv(file.path(path_shared, "screen.csv"), 
                    col_types = cols()) |>
@@ -52,26 +54,32 @@ screen <- read_csv(file.path(path_shared, "screen.csv"),
 lapses <- read_csv(file.path(path_shared, "lapses.csv"), col_types = cols()) |>
   filter(exclude == FALSE)
 
+# lapse labels
+labels_week <- read_csv(file.path(path_processed_ema, "labels_1week.csv"), col_types = cols())
+labels_day <- read_csv(file.path(path_processed_ema, "labels_1day.csv"), col_types = cols())
+labels_hour <- read_csv(file.path(path_processed_ema, "labels_1hour.csv"), col_types = cols())
+
+
 # Predictions data
-preds_week<- read_rds(file.path(path_models, "outer_preds_1week_0_v5_nested.rds")) |> 
+preds_week<- read_rds(file.path(path_models_ema, "outer_preds_1week_0_v5_nested_main.rds")) |> 
   select(outer_split_num, label, prob = prob_beta)
-preds_day<- read_rds(file.path(path_models, "outer_preds_1day_0_v5_nested.rds")) |> 
+preds_day<- read_rds(file.path(path_models_ema, "outer_preds_1day_0_v5_nested_main.rds")) |> 
   select(outer_split_num, label, prob = prob_beta)
-preds_hour<- read_rds(file.path(path_models, "outer_preds_1hour_0_v5_nested.rds")) |> 
+preds_hour<- read_rds(file.path(path_models_ema, "outer_preds_1hour_0_v5_nested_main.rds")) |> 
   select(outer_split_num, label, prob = prob_beta)
 
-auc_week <- read_rds(file.path(path_models, "outer_metrics_1week_0_v5_nested.rds")) |> 
+auc_week <- read_rds(file.path(path_models_ema, "outer_metrics_1week_0_v5_nested_main.rds")) |> 
   select(outer_split_num, contains("auc"))
-auc_day <- read_rds(file.path(path_models, "outer_metrics_1day_0_v5_nested.rds")) |> 
+auc_day <- read_rds(file.path(path_models_ema, "outer_metrics_1day_0_v5_nested_main.rds")) |> 
   select(outer_split_num, contains("auc"))
-auc_hour <- read_rds(file.path(path_models, "outer_metrics_1hour_0_v5_nested.rds")) |> 
+auc_hour <- read_rds(file.path(path_models_ema, "outer_metrics_1hour_0_v5_nested_main.rds")) |> 
   select(outer_split_num, contains("auc"))
 
-auc_week_baseline <- read_rds(file.path(path_models, "outer_metrics_1week_0_v3_nested_baseline.rds")) |> 
+auc_week_baseline <- read_rds(file.path(path_models_ema, "outer_metrics_1week_0_v3_nested_baseline.rds")) |> 
   select(outer_split_num, contains("auc")) 
-auc_day_baseline <- read_rds(file.path(path_models, "outer_metrics_1day_0_v3_nested_baseline.rds")) |> 
+auc_day_baseline <- read_rds(file.path(path_models_ema, "outer_metrics_1day_0_v3_nested_baseline.rds")) |> 
   select(outer_split_num, contains("auc")) 
-auc_hour_baseline <- read_rds(file.path(path_models, "outer_metrics_1hour_0_v3_nested_baseline.rds")) |> 
+auc_hour_baseline <- read_rds(file.path(path_models_ema, "outer_metrics_1hour_0_v3_nested_baseline.rds")) |> 
   select(outer_split_num, contains("auc"))
 
 # ROC curves
@@ -109,12 +117,12 @@ pr_all <- pr_week |>
   bind_rows(pr_hour)
 
 # metrics
-metrics_week <- read_csv(file.path(path_models, "test_metrics_1week_0_v5_nested.csv"))
-metrics_day <- read_csv(file.path(path_models, "test_metrics_1day_0_v5_nested.csv"))
-metrics_hour <- read_csv(file.path(path_models, "test_metrics_1hour_0_v5_nested.csv"))
+metrics_week <- read_csv(file.path(path_models_ema, "test_metrics_1week_0_v5_nested.csv"))
+metrics_day <- read_csv(file.path(path_models_ema, "test_metrics_1day_0_v5_nested.csv"))
+metrics_hour <- read_csv(file.path(path_models_ema, "test_metrics_1hour_0_v5_nested.csv"))
 
 # posterior probabilities
-pp <- read_rds(file.path(path_models, "posteriors_all_0_v5_nested.rds"))
+pp <- read_rds(file.path(path_models_ema, "posteriors_all_0_v5_nested.rds"))
 
 pp_tidy <- pp |>  
   tidy(seed = 123)
@@ -141,7 +149,7 @@ ci_diffs <- pp_diffs |>
             upper = quantile(difference, probs = q[3]))
 
 # baseline posteriors
-pp_baseline <- read_rds(file.path(path_models, "posteriors_all_0_v3_nested_baseline.rds"))
+pp_baseline <- read_rds(file.path(path_models_ema, "posteriors_all_0_v3_nested_baseline.rds"))
 
 ci_baseline <- pp_baseline |>  
   tidy(seed = 123) |>  
@@ -342,7 +350,7 @@ We calculated Shapley values from the 30 test sets using the SHAPforxgboost pack
 ### Demographic and Clinical Characteristics
 One hundred ninety-two participants were eligible. Of these, `r nrow(subset(disposition, consented == "yes"))` consented to participate, and `r nrow(subset(disposition, enrolled == "yes"))` subsequently enrolled in the study. Fifteen participants discontinued before the first monthly follow-up visit. We excluded data from one participant who did not maintain a goal of abstinence during their participation. We also excluded data from two participants due to evidence of careless responding and unusually low compliance. Our final sample consisted of `r nrow(subset(disposition, analysis == "yes"))` participants (see Supplement for more detail on enrollment and disposition).
 
-The final sample included approximately equal numbers of men (N=`r nrow(subset(screen, dem_2 == "Male"))`; `r sprintf("%1.1f", nrow(subset(screen, dem_2 == "Male"))/nrow(screen)*100)`%) and women (N=`r nrow(subset(screen, dem_2 == "Female"))`; `r sprintf("%1.1f", nrow(subset(screen, dem_2 == "Female"))/nrow(screen)*100)`%) who ranged in age from `r screen |> pull(dem_1) |> min()` - `r screen |> pull(dem_1) |> max()` years old.  The sample was majority White (N=`r nrow(subset(screen, dem_3 == "White/Caucasian"))`; `r  sprintf("%1.1f", nrow(subset(screen, dem_3 == "White/Caucasian"))/nrow(screen)*100)`%) and non-Hispanic (N=`r nrow(subset(screen, dem_4 == "No, I am not of Hispanic, Latino, or Spanish origin"))`; `r  sprintf("%1.1f", nrow(subset(screen, dem_4 == "No, I am not of Hispanic, Latino, or Spanish origin"))/nrow(screen)*100)`%).  Participants self-reported a median of `r sprintf("%1.1f",screen |> pull(dsm5_total) |> median())` DSM-5 symptoms of AUD (mean=`r sprintf("%1.1f",screen |> pull(dsm5_total) |> mean())`; SD=`r sprintf("%1.1f",screen |> pull(dsm5_total) |> sd())`; range=`r sprintf("%1.1f",screen |> pull(dsm5_total) |> min())`-`r sprintf("%1.1f",screen |> pull(dsm5_total) |> max())`) and a median of `r sprintf("%1.1f", subset(screen, auh_5 < 100) |> pull(auh_5) |> median())` previous quit attempts (mean=`r sprintf("%1.1f", subset(screen, auh_5 < 100) |> pull(auh_5) |> mean())`; SD=`r sprintf("%1.1f", subset(screen, auh_5 < 100) |> pull(auh_5) |> sd())`; range=`r sprintf("%1.1f", subset(screen, auh_5 < 100) |> pull(auh_5) |> min())`-`r sprintf("%1.1f", subset(screen, auh_5 < 100) |> pull(auh_5) |> max())`).  Most participants (N=`r nrow(subset(lapses_per_subid, n >0))`; `r sprintf("%1.1f", nrow(subset(lapses_per_subid, n >0))/nrow(lapses_per_subid)*100)`%) reported one or more lapses during participation.  The median number of lapses per participant while on-study was `r sprintf("%1.1f",lapses_per_subid |> pull(n) |> median())` (mean=`r sprintf("%1.1f",lapses_per_subid |> pull(n) |> mean())`; SD = `r sprintf("%1.1f",lapses_per_subid |> pull(n) |> sd())`; range=`r sprintf("%1.1f",lapses_per_subid |> pull(n) |> min())`-`r sprintf("%1.1f",lapses_per_subid |> pull(n) |> max())`).  @tbl-dem provides more detail on demographic and clinical characteristics of the sample.
+The final sample included approximately equal numbers of men (N=`r nrow(subset(screen, dem_2 == "Male"))`; `r sprintf("%1.1f", nrow(subset(screen, dem_2 == "Male"))/nrow(screen)*100)`%) and women (N=`r nrow(subset(screen, dem_2 == "Female"))`; `r sprintf("%1.1f", nrow(subset(screen, dem_2 == "Female"))/nrow(screen)*100)`%) who ranged in age from `r screen |> pull(dem_1) |> min()` - `r screen |> pull(dem_1) |> max()` years old.  The sample was majority White (N=`r nrow(subset(screen, dem_3 == "White/Caucasian"))`; `r  sprintf("%1.1f", nrow(subset(screen, dem_3 == "White/Caucasian"))/nrow(screen)*100)`%) and non-Hispanic (N=`r nrow(subset(screen, dem_4 == "No, I am not of Hispanic, Latino, or Spanish origin"))`; `r  sprintf("%1.1f", nrow(subset(screen, dem_4 == "No, I am not of Hispanic, Latino, or Spanish origin"))/nrow(screen)*100)`%).  Participants self-reported a median of `r sprintf("%1.1f",screen |> pull(dsm5_total) |> median())` DSM-5 symptoms of AUD (mean=`r sprintf("%1.1f",screen |> pull(dsm5_total) |> mean())`; SD=`r sprintf("%1.1f",screen |> pull(dsm5_total) |> sd())`; range=`r sprintf("%1.1f",screen |> pull(dsm5_total) |> min())`-`r sprintf("%1.1f",screen |> pull(dsm5_total) |> max())`). Most participants (N=`r nrow(subset(lapses_per_subid, n >0))`; `r sprintf("%1.1f", nrow(subset(lapses_per_subid, n >0))/nrow(lapses_per_subid)*100)`%) reported one or more lapses during participation.  The median number of lapses per participant while on-study was `r sprintf("%1.1f",lapses_per_subid |> pull(n) |> median())` (mean=`r sprintf("%1.1f",lapses_per_subid |> pull(n) |> mean())`; SD = `r sprintf("%1.1f",lapses_per_subid |> pull(n) |> sd())`; range=`r sprintf("%1.1f",lapses_per_subid |> pull(n) |> min())`-`r sprintf("%1.1f",lapses_per_subid |> pull(n) |> max())`). @tbl-dem provides more detail on demographic and clinical characteristics of the sample.
 
 {{< embed notebooks/ema_tables.qmd#tbl-dem >}} 
 
